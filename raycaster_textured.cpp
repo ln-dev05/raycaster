@@ -4,13 +4,14 @@
 #include <iostream>
 
 #include <SDL/SDL.h>
+#include "Timer.hpp"
 
 #include "quickcg.h"
 using namespace QuickCG;
 
 /*
 g++ *.cpp -lSDL -O3 -W -Wall -ansi -pedantic
-g++ *.cpp -lSDL
+g++ raycaster_textured.cpp *.o -lSDL
 */
 
 
@@ -162,8 +163,7 @@ int main(int argc, char * argv[])
   Vec2 plane(0.0, 0.70); //the 2d raycaster version of camera plane
 
 
-  double time = 0; //time of current frame
-  double oldTime = 0; //time of previous frame
+  Timer timer;
 
   screen(screenWidth,screenHeight, 0, "Raycaster");
   loadTextures();
@@ -265,14 +265,14 @@ int main(int argc, char * argv[])
     drawBuffer(buffer[0]);
     clearBuffer(buffer, h, w); //clear the buffer instead of cls()
 
-    double frameTime = getFrameTime(time, oldTime);
-    print(1.0 / frameTime); //FPS counter
+    timer.update(QuickCG::getTicks());
+    print(timer.frame_rate); //FPS counter
 
     redraw();
 
     //speed modifiers
-    double moveSpeed = frameTime * 5.0; //the constant value is in squares/second
-    double rotSpeed = frameTime * 3.0; //the constant value is in radians/second
+    double moveSpeed = timer.frame_time * 5.0; //the constant value is in squares/second
+    double rotSpeed = timer.frame_time * 3.0; //the constant value is in radians/second
 
     readKeys();
 
