@@ -5,6 +5,7 @@
 
 #include <SDL/SDL.h>
 #include "Timer.hpp"
+#include "Vectors.hpp"
 
 #include "quickcg.h"
 using namespace QuickCG;
@@ -22,33 +23,7 @@ g++ raycaster_textured.cpp *.o -lSDL
 #define mapWidth 24
 #define mapHeight 24
 
-#define textureMax 9
-
-struct Vec2INT {
-  int x, y;
-  public:
-    Vec2INT(const int rx, const int ry) {
-      x = rx;
-      y = ry;
-    }
-};
-
-struct Vec2 {
-  double x, y;
-    Vec2(const double rx, const double ry) {
-    x = rx;
-    y = ry;
-  }
-};
-
-struct Vec3 {
-  double x, y, z;
-    Vec3(const double rx, const double ry, const double rz) {
-    x = rx;
-    y = ry;
-    z = rz;
-  }
-};
+#define textureMax 10
 
 int worldMap[mapWidth][mapHeight]=
 {
@@ -100,6 +75,9 @@ void loadTextures() {
   loadImage(texture[6], tw, th, "pics/wood.png");
   loadImage(texture[7], tw, th, "pics/colorstone.png");
   loadImage(texture[8], tw, th, "pics/enemy.png");
+
+  texture[9].resize(screenWidth*2*texHeight);
+  loadImage(texture[9], tw, th, "pics/HUD.png");
 }
 
 double calcStepInitialSideDist(const double rayDir, int & step, const int map, const double pos, const double deltaDist) {
@@ -109,14 +87,6 @@ double calcStepInitialSideDist(const double rayDir, int & step, const int map, c
   }
   step = 1;
   return (map + 1.0 - pos) * deltaDist;
-}
-
-
-double getFrameTime(double & time, double & oldTime) {
-    //timing for input and FPS counter
-    oldTime = time;
-    time = getTicks();
-    return (time - oldTime) / 1000.0; //frametime is the time this frame has taken, in seconds
 }
 
 void translate(Vec2 & pos, const Vec2 dir, const double moveSpeed, const Vec3 orgDir) {
@@ -155,6 +125,29 @@ void keyManagment(Vec2 & pos, Vec2 & dir, Vec2 & plane, const double moveSpeed, 
   }
 }
 
+void drawHUD(Uint32 buffer[screenHeight][screenWidth], int h, int w) {
+  for (int x = 0; x < w; x++)
+    for (int y = 0; y < h; y++) {
+      Uint32 colors = texture[9][y * screenWidth + x];
+      Uint32 oldcolors = buffer[screenHeight -  2*texHeight + y][x];
+
+      Uint8 alpha = (colors>>(3*8))&0xff;
+      Uint8 oldalpha = (oldcolors>>(3*8))&0xff;
+
+      for (int i = 0; i < 3; i++) {
+
+        Uint8 * color = (Uint8 *)&colors;
+        color += i;
+
+        Uint8 * oldcolor = (Uint8 *)&oldcolors;
+        oldcolor += i;
+
+        buffer[screenHeight -  2*texHeight + y][x] |= (*color * alpha + (1-alpha) * *oldcolor) <<(i*8);
+      }
+      buffer[screenHeight -  2*texHeight + y][x] &= 0xff<<(3*8);
+      buffer[screenHeight -  2*texHeight + y][x] |= (alpha + oldalpha)<<(3*8);
+    }
+}
 
 int main(int argc, char * argv[])
 {
@@ -261,6 +254,8 @@ int main(int argc, char * argv[])
         buffer[y][x] = color;
       }
     }
+
+    drawHUD(buffer, texHeight * 2, screenWidth);
 
     drawBuffer(buffer[0]);
     clearBuffer(buffer, h, w); //clear the buffer instead of cls()
